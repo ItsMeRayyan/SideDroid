@@ -3,7 +3,8 @@ mod device;
 
 use axum::{
     routing::get,
-    Json, Router,
+    Json,
+    Router,
 };
 use serde::Serialize;
 use std::net::SocketAddr;
@@ -14,7 +15,7 @@ struct ApiDevice {
     status: String,
     manufacturer: String,
     model: String,
-    system: String,
+    version: String,
 }
 
 async fn home() -> &'static str {
@@ -22,23 +23,23 @@ async fn home() -> &'static str {
 }
 
 async fn devices() -> Json<Vec<ApiDevice>> {
-    let devices = device::get_devices();
+    let mut list = Vec::new();
 
-    let mut api_devices = Vec::new();
+    let devices = adb::list_devices();
 
-    for d in devices {
-        let info = adb::get_device_info(&d.id);
+    for device in devices {
+        let info = adb::get_device_info(&device.id);
 
-        api_devices.push(ApiDevice {
-            id: d.id,
-            status: d.status,
+        list.push(ApiDevice {
+            id: device.id,
+            status: device.status,
             manufacturer: info.manufacturer,
             model: info.model,
-            system: info.system,
+            version: info.version,
         });
     }
 
-    Json(api_devices)
+    Json(list)
 }
 
 #[tokio::main]
