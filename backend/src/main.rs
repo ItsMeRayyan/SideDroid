@@ -1,35 +1,72 @@
 mod adb;
 mod device;
 
-fn main() {
+use axum::{
+    routing::get,
+    Json, Router,
+};
+use serde::Serialize;
+use std::net::SocketAddr;
+
+#[derive(Serialize)]
+struct ApiDevice {
+    id: String,
+    status: String,
+    manufacturer: String,
+    model: String,
+    system: String,
+}
+
+async fn home() -> &'static str {
+    "SideDroid Backend is running!"
+}
+
+async fn devices() -> Json<Vec<ApiDevice>> {
+    let devices = device::get_devices();
+
+    let mut api_devices = Vec::new();
+
+    for d in devices {
+        let info = adb::get_device_info(&d.id);
+
+        api_devices.push(ApiDevice {
+            id: d.id,
+            status: d.status,
+            manufacturer: info.manufacturer,
+            model: info.model,
+            system: info.system,
+        });
+    }
+
+    Json(api_devices)
+}
+
+#[tokio::main]
+async fn main() {
     println!("SideDroid Backend");
     println!("================");
 
     if adb::check_adb() {
         println!("ADB: Found ✓");
     } else {
-        println!("ADB: Not found ✗");
-        return;
+        println!("ADB: Missing ✗");
     }
 
-    println!("\nDevices:");
+    let app = Router::new()
+        .route("/", get(home))
+        .route("/devices", get(devices));
 
-    let devices = adb::list_devices();
+    let address = SocketAddr::from(([127, 0, 0, 1], 8080));
 
-    if devices.is_empty() {
-        println!("No devices connected");
-        return;
-    }
+    println!();
+    println!("Server running:");
+    println!("http://{}", address);
 
-    for device in devices {
-        println!("\nDevice found!");
-        println!("ID: {}", device.id);
-        println!("Status: {}", device.status);
+    let listener = tokio::net::TcpListener::bind(address)
+        .await
+        .unwrap();
 
-        let info = adb::get_device_info(&device.id);
-
-        println!("Manufacturer: {}", info.manufacturer);
-        println!("Model: {}", info.model);
-        println!("System: {}", info.version);
-    }
+    axum::serve(listener, app)
+        .await
+        .unwrap();
 }
