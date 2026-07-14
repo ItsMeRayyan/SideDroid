@@ -1,0 +1,1 @@
+/Users/rayyan/Documents/GitHub/SideDroid/backend/target/debug/sidedroid-backend: /Users/rayyan/Documents/GitHub/SideDroid/backend/src/adb.rs /Users/rayyan/Documents/GitHub/SideDroid/backend/src/device.rs /Users/rayyan/Documents/GitHub/SideDroid/backend/src/main.rs
